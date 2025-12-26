@@ -2,6 +2,8 @@
 ブラウザだけで動作する、シンプルかつ高機能な2分割表示のMarkdownエディタです。
 標準的なMarkdownプレビューに加え、文章作成で面倒な改行処理を自動化する整形機能を搭載しています。
 
+github pages: [https://ryjkmr.github.io/simple_markdown_editor_with_preview/](https://ryjkmr.github.io/simple_markdown_editor_with_preview/)
+
 ## 特徴  
 - 2分割リアルタイムプレビュー: 左側で編集、右側で即座に結果を確認。  
 
