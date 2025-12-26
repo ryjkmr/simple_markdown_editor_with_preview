@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Markdown Editor</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #f5f5f5;
+      --editor-bg: #ffffff;
+      --border-color: #ddd;
+      --accent-color: #007aff;
+      --success-color: #28a745;
+      --sidebar-bg: #2c3e50;
+      --sidebar-width: 280px;
+      /* 大きくした文字に合わせて幅も拡張 */
+    }
+
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+      overflow: hidden;
+      font-size: 19px;
+      /* 全体のベースを大きく */
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* サイドバー */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: white;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    .sidebar h3 {
+      font-size: 1rem;
+      border-bottom: 1px solid #555;
+      margin-top: 0;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+      font-size: 1rem;
+      flex-grow: 1;
+    }
+
+    .sidebar li {
+      margin-bottom: 6px;
+    }
+
+    .sidebar code {
+      background: #444;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+
+    /* ボタンエリア */
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .btn {
+      border: none;
+      padding: 10px;
+      border-radius: 4px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn-format {
+      background-color: var(--accent-color);
+    }
+
+    .btn-copy {
+      background-color: #6c757d;
+    }
+
+    .btn-download {
+      background-color: var(--success-color);
+    }
+
+    /* メイン編集エリア */
+    .main-area {
+      display: flex;
+      flex: 1;
+      background: var(--editor-bg);
+    }
+
+    .pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--border-color);
+    }
+
+    .pane-header {
+      padding: 8px 15px;
+      background: #eee;
+      font-size: 0.9rem;
+      font-weight: bold;
+      border-bottom: 1px solid var(--border-color);
+      color: #666;
+    }
+
+    #editor {
+      flex: 1;
+      padding: 20px;
+      border: none;
+      resize: none;
+      outline: none;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 18px;
+      /* 入力文字も大きく */
+      line-height: 1.6;
+    }
+
+    #preview {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: white;
+      line-height: 1.7;
+    }
+
+    /* Preview Styling */
+    #preview h1,
+    #preview h2 {
+      border-bottom: 1px solid #eee;
+      padding-bottom: 0.3em;
+    }
+
+    #preview code {
+      background: #f0f0f0;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+
+    #preview pre {
+      background: #f6f8fa;
+      padding: 16px;
+      overflow: auto;
+      border-radius: 6px;
+    }
+
+    #preview blockquote {
+      border-left: 4px solid #dfe2e5;
+      color: #6a737d;
+      margin: 0;
+      padding-left: 1em;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="sidebar">
+      <h3>Cheat Sheet</h3>
+      <ul>
+        <li><code>#</code> 見出し</li>
+        <li><code>**太字**</code></li>
+        <li><code>*斜体*</code></li>
+        <li><code>-</code> リスト</li>
+        <li><code>1.</code> 番号付きリスト</li>
+        <li><code>半角スペースx2+改行</code> 改行</li>
+        <li><code>---</code> 横線</li>
+        <li><code>[Link](url)</code></li>
+        <li><code>![Alt](img_url)</code></li>
+        <li><code>></code> 引用</li>
+        <li><code>`code`</code> インライン</li>
+        <li><code>```</code> コードブロック</li>
+      </ul>
+
+      <div class="actions">
+        <button id="formatBtn" class="btn btn-format">改行を自動整形</button>
+        <button id="copyBtn" class="btn btn-copy">ソースをコピー</button>
+        <button id="downloadBtn" class="btn btn-download">.mdとして保存</button>
+      </div>
+    </div>
+
+    <div class="main-area">
+      <div class="pane">
+        <div class="pane-header">EDITOR</div>
+        <textarea id="editor" placeholder="Markdownを記述..."></textarea>
+      </div>
+      <div class="pane">
+        <div class="pane-header">PREVIEW</div>
+        <div id="preview"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const editor = document.getElementById('editor');
+    const preview = document.getElementById('preview');
+
+    const updatePreview = () => {
+      preview.innerHTML = marked.parse(editor.value);
+    };
+
+    editor.addEventListener('input', updatePreview);
+
+    // 1. 改行整形機能（構造を維持）
+    document.getElementById('formatBtn').addEventListener('click', () => {
+      let text = editor.value;
+      const blocks = [];
+      text = text.replace(/```[\s\S]*?```/g, m => { blocks.push(m); return `__CB${blocks.length - 1}__`; });
+
+      const lines = text.split('\n');
+      const processed = lines.map((line, i) => {
+        if (line.trim() === "" || line.endsWith("  ") || line.match(/^(\s*#|\s*[-*+]\s|\s*\d+\.\s|\s*>|\s*---)/)) return line;
+        return i < lines.length - 1 ? line + "  " : line;
+      });
+
+      let result = processed.join('\n');
+      result = result.replace(/__CB(\d+)__/g, (_, i) => blocks[i]);
+      editor.value = result;
+      updatePreview();
+    });
+
+    // 2. コピー機能
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(editor.value).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "完了！";
+        setTimeout(() => btn.innerText = originalText, 2000);
+      });
+    });
+
+    // 3. ダウンロード機能
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const blob = new Blob([editor.value], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "document.md";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // 初期テキスト
+    /*     editor.value = "# Welcome\nここに文章を書きます。\nボタン一つで改行を整形し、ファイルとして保存できます。";
+        updatePreview(); */
+  </script>
+
+</body>
+
+</html>
